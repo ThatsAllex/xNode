@@ -10,7 +10,7 @@ using GenericMenu = XNodeEditor.AdvancedGenericMenu;
 
 namespace XNodeEditor {
     public partial class NodeEditorWindow {
-        public enum NodeActivity { Idle, HoldNode, DragNode, HoldGrid, DragGrid }
+        public enum NodeActivity { Idle, HoldNode, DragNode, ConnectNode, HoldGrid, DragGrid }
         public static NodeActivity currentActivity = NodeActivity.Idle;
         public static bool isPanning { get; private set; }
         public static Vector2[] dragOffset;
