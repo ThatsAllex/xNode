@@ -1,7 +1,7 @@
 {
   "name": "com.github.siccity.xnode",
-  "description": "xNode provides a set of APIs and an editor interface for creating and editing custom node graphs.",
-  "version": "1.8.0",
+  "description": "xNode provides a set of APIs and an editor interface for creating and editing custom node graphs. Custom fork by ThatsAllex adding node connection for FSM (https://github.com/ThatsAllex/xNode)",
+  "version": "2.0.0",
   "unity": "2018.1",
   "displayName": "xNode"
 }
