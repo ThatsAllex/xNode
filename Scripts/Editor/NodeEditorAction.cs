@@ -30,6 +30,7 @@ namespace XNodeEditor {
         public XNode.Node HoveredNode { get { XNode.Node result = hoveredNode; return result; } }
 
         private XNode.Node hoveredNode = null;
+        private XNode.Node connectingNode;
         [NonSerialized] public XNode.NodePort hoveredPort = null;
         [NonSerialized] private XNode.NodePort draggedOutput = null;
         [NonSerialized] private XNode.NodePort draggedOutputTarget = null;
@@ -188,7 +189,9 @@ namespace XNodeEditor {
                             isDoubleClick = (e.clickCount == 2);
 
                             e.Use();
-                            currentActivity = NodeActivity.HoldNode;
+                            // Only if the user is not connecting nodes, change the activity
+                            if(currentActivity != NodeActivity.ConnectNode)
+                                currentActivity = NodeActivity.HoldNode;
                         } else if (IsHoveringReroute) {
                             // If reroute isn't selected
                             if (!selectedReroutes.Contains(hoveredReroute)) {
@@ -248,7 +251,14 @@ namespace XNodeEditor {
                             IEnumerable<XNode.Node> nodes = Selection.objects.Where(x => x is XNode.Node).Select(x => x as XNode.Node);
                             foreach (XNode.Node node in nodes) EditorUtility.SetDirty(node);
                             if (NodeEditorPreferences.GetSettings().autoSave) AssetDatabase.SaveAssets();
-                        } else if (!IsHoveringNode) {
+                        }
+                        else if (currentActivity == NodeActivity.ConnectNode) {
+                            if (IsHoveringNode)
+                            {
+                                // TODO Connect the nodes
+                                Debug.Log($"Connecting {connectingNode.name} & {hoveredNode.name}");
+                            }
+                        }else if (!IsHoveringNode) {
                             // If click outside node, release field focus
                             if (!isPanning) {
                                 EditorGUI.FocusTextInControl(null);
@@ -292,6 +302,8 @@ namespace XNodeEditor {
                                 if (!Selection.Contains(hoveredNode)) SelectNode(hoveredNode, false);
                                 autoConnectOutput = null;
                                 GenericMenu menu = new GenericMenu();
+                                // As the context menu will cover the hovered node, save a reference for it here
+                                connectingNode = hoveredNode;
                                 NodeEditor.GetEditor(hoveredNode, this).AddContextMenuItems(menu);
                                 menu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
                                 e.Use(); // Fixes copy/paste context menu appearing in Unity 5.6.6f2 - doesn't occur in 2018.3.2f1 Probably needs to be used in other places.
@@ -418,6 +430,11 @@ namespace XNodeEditor {
                     RenamePopup.Show(Selection.activeObject);
                 }
             }
+        }
+
+        /// <summary> Connect the hovered node to a different one</summary>
+        public void Connect() {
+            currentActivity = NodeActivity.ConnectNode;
         }
 
         /// <summary> Draw this node on top of other nodes by placing it last in the graph.nodes list </summary>
