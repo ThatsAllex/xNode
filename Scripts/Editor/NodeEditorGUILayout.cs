@@ -214,7 +214,10 @@ namespace XNodeEditor {
                 rect.width += NodeEditorWindow.current.graphEditor.GetPortStyle(port).padding.right;
                 position = rect.position + new Vector2(rect.width, 0);
             }
-            PortField(position, port);
+
+            // If is a node port don't display the handle
+            if(port.ValueType != typeof(Node))
+                PortField(position, port);
         }
 
         /// <summary> Make a simple port field. </summary>
