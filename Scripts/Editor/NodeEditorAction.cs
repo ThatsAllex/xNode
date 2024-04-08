@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Graphs;
 using UnityEngine;
 using XNodeEditor.Internal;
 #if UNITY_2019_1_OR_NEWER && USE_ADVANCED_GENERIC_MENU
@@ -20,6 +21,7 @@ namespace XNodeEditor {
         public bool IsDraggingPort { get { return draggedOutput != null; } }
         public bool IsHoveringPort { get { return hoveredPort != null; } }
         public bool IsHoveringNode { get { return hoveredNode != null; } }
+        public bool IsConnectingNode { get { return connectingNode != null; } }
         public bool IsHoveringReroute { get { return hoveredReroute.port != null; } }
 
         /// <summary> Return the dragged port or null if not exist </summary>
@@ -214,6 +216,7 @@ namespace XNodeEditor {
                             currentActivity = NodeActivity.HoldGrid;
                             if (!e.control && !e.shift) {
                                 selectedReroutes.Clear();
+                                connectingNode = null;
                                 Selection.activeObject = null;
                             }
                         }
@@ -255,9 +258,12 @@ namespace XNodeEditor {
                         else if (currentActivity == NodeActivity.ConnectNode) {
                             if (IsHoveringNode)
                             {
-                                // TODO Connect the nodes
-                                Debug.Log($"Connecting {connectingNode.name} & {hoveredNode.name}");
+                                // Connect the nodes
+                                connectingNode.AddDynamicOutput(typeof(Node), XNode.Node.ConnectionType.Multiple, XNode.Node.TypeConstraint.None,"Out - " + hoveredNode.name);
+                                hoveredNode.AddDynamicInput(typeof(Node), XNode.Node.ConnectionType.Multiple, XNode.Node.TypeConstraint.None, "In - " + connectingNode.name);
                             }
+
+                            connectingNode = null;
                         }else if (!IsHoveringNode) {
                             // If click outside node, release field focus
                             if (!isPanning) {
@@ -551,6 +557,17 @@ namespace XNodeEditor {
 
                     NodeEditorGUILayout.DrawPortHandle(rect, bgcol, frcol, portStyle.normal.background, portStyle.active.background);
                 }
+            }
+            else if (IsConnectingNode) {
+                Gradient gradient = new Gradient();
+                float thickness = 10f;
+                NoodleStroke stroke = graphEditor.GetNoodleStroke(null, null);
+
+                List<Vector2> gridPoints = new List<Vector2>();
+                gridPoints.Add(connectingNode.position);
+                gridPoints.Add(WindowToGridPosition(Event.current.mousePosition));
+
+                DrawNoodle(gradient, NoodlePath.Straight, stroke, thickness, gridPoints);
             }
         }
 
