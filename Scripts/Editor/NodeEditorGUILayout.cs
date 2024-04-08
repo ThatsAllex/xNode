@@ -214,7 +214,10 @@ namespace XNodeEditor {
                 rect.width += NodeEditorWindow.current.graphEditor.GetPortStyle(port).padding.right;
                 position = rect.position + new Vector2(rect.width, 0);
             }
-            PortField(position, port);
+
+            // If is a node port don't display the handle
+            if(port.ValueType != typeof(XNode.Node))
+                PortField(position, port);
         }
 
         /// <summary> Make a simple port field. </summary>
@@ -448,9 +451,10 @@ namespace XNodeEditor {
                     string newName = fieldName + " 0";
                     int i = 0;
                     while (node.HasPort(newName)) newName = fieldName + " " + (++i);
-
-                    if (io == XNode.NodePort.IO.Output) node.AddDynamicOutput(type, connectionType, XNode.Node.TypeConstraint.None, newName);
-                    else node.AddDynamicInput(type, connectionType, typeConstraint, newName);
+                    if (type != typeof(XNode.Node)) {
+                        if (io == XNode.NodePort.IO.Output) node.AddDynamicOutput(type, connectionType, XNode.Node.TypeConstraint.None, newName);
+                        else node.AddDynamicInput(type, connectionType, typeConstraint, newName);
+                    }
                     serializedObject.Update();
                     EditorUtility.SetDirty(node);
                     if (hasArrayData) {

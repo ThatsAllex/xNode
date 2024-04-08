@@ -10,7 +10,7 @@ using GenericMenu = XNodeEditor.AdvancedGenericMenu;
 
 namespace XNodeEditor {
     public partial class NodeEditorWindow {
-        public enum NodeActivity { Idle, HoldNode, DragNode, HoldGrid, DragGrid }
+        public enum NodeActivity { Idle, HoldNode, DragNode, ConnectNode, HoldGrid, DragGrid }
         public static NodeActivity currentActivity = NodeActivity.Idle;
         public static bool isPanning { get; private set; }
         public static Vector2[] dragOffset;
@@ -20,6 +20,7 @@ namespace XNodeEditor {
         public bool IsDraggingPort { get { return draggedOutput != null; } }
         public bool IsHoveringPort { get { return hoveredPort != null; } }
         public bool IsHoveringNode { get { return hoveredNode != null; } }
+        public bool IsConnectingNode { get { return connectingNode != null; } }
         public bool IsHoveringReroute { get { return hoveredReroute.port != null; } }
 
         /// <summary> Return the dragged port or null if not exist </summary>
@@ -30,6 +31,7 @@ namespace XNodeEditor {
         public XNode.Node HoveredNode { get { XNode.Node result = hoveredNode; return result; } }
 
         private XNode.Node hoveredNode = null;
+        private XNode.Node connectingNode;
         [NonSerialized] public XNode.NodePort hoveredPort = null;
         [NonSerialized] private XNode.NodePort draggedOutput = null;
         [NonSerialized] private XNode.NodePort draggedOutputTarget = null;
@@ -188,7 +190,9 @@ namespace XNodeEditor {
                             isDoubleClick = (e.clickCount == 2);
 
                             e.Use();
-                            currentActivity = NodeActivity.HoldNode;
+                            // Only if the user is not connecting nodes, change the activity
+                            if(currentActivity != NodeActivity.ConnectNode)
+                                currentActivity = NodeActivity.HoldNode;
                         } else if (IsHoveringReroute) {
                             // If reroute isn't selected
                             if (!selectedReroutes.Contains(hoveredReroute)) {
@@ -211,6 +215,7 @@ namespace XNodeEditor {
                             currentActivity = NodeActivity.HoldGrid;
                             if (!e.control && !e.shift) {
                                 selectedReroutes.Clear();
+                                connectingNode = null;
                                 Selection.activeObject = null;
                             }
                         }
@@ -248,7 +253,20 @@ namespace XNodeEditor {
                             IEnumerable<XNode.Node> nodes = Selection.objects.Where(x => x is XNode.Node).Select(x => x as XNode.Node);
                             foreach (XNode.Node node in nodes) EditorUtility.SetDirty(node);
                             if (NodeEditorPreferences.GetSettings().autoSave) AssetDatabase.SaveAssets();
-                        } else if (!IsHoveringNode) {
+                        }
+                        else if (currentActivity == NodeActivity.ConnectNode) {
+                            if (IsHoveringNode)
+                            {
+                                // Connect the nodes
+                                XNode.NodePort outPort = connectingNode.AddDynamicOutput(typeof(XNode.Node), XNode.Node.ConnectionType.Multiple, XNode.Node.TypeConstraint.None,"Out - " + hoveredNode.name);
+                                XNode.NodePort inPort = hoveredNode.AddDynamicInput(typeof(XNode.Node), XNode.Node.ConnectionType.Multiple, XNode.Node.TypeConstraint.None, "In - " + connectingNode.name);
+
+                                // Connect the ports
+                                outPort.Connect(inPort);
+                            }
+
+                            connectingNode = null;
+                        }else if (!IsHoveringNode) {
                             // If click outside node, release field focus
                             if (!isPanning) {
                                 EditorGUI.FocusTextInControl(null);
@@ -292,6 +310,8 @@ namespace XNodeEditor {
                                 if (!Selection.Contains(hoveredNode)) SelectNode(hoveredNode, false);
                                 autoConnectOutput = null;
                                 GenericMenu menu = new GenericMenu();
+                                // As the context menu will cover the hovered node, save a reference for it here
+                                connectingNode = hoveredNode;
                                 NodeEditor.GetEditor(hoveredNode, this).AddContextMenuItems(menu);
                                 menu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
                                 e.Use(); // Fixes copy/paste context menu appearing in Unity 5.6.6f2 - doesn't occur in 2018.3.2f1 Probably needs to be used in other places.
@@ -420,6 +440,11 @@ namespace XNodeEditor {
             }
         }
 
+        /// <summary> Connect the hovered node to a different one</summary>
+        public void Connect() {
+            currentActivity = NodeActivity.ConnectNode;
+        }
+
         /// <summary> Draw this node on top of other nodes by placing it last in the graph.nodes list </summary>
         public void MoveNodeToTop(XNode.Node node) {
             int index;
@@ -534,6 +559,17 @@ namespace XNodeEditor {
 
                     NodeEditorGUILayout.DrawPortHandle(rect, bgcol, frcol, portStyle.normal.background, portStyle.active.background);
                 }
+            }
+            else if (IsConnectingNode) {
+                Gradient gradient = new Gradient();
+                float thickness = 10f;
+                NoodleStroke stroke = graphEditor.GetNoodleStroke(null, null);
+
+                List<Vector2> gridPoints = new List<Vector2>();
+                gridPoints.Add(connectingNode.position);
+                gridPoints.Add(WindowToGridPosition(Event.current.mousePosition));
+
+                DrawNoodle(gradient, NoodlePath.Straight, stroke, thickness, gridPoints);
             }
         }
 

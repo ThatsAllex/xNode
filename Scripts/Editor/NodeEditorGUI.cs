@@ -341,6 +341,55 @@ namespace XNodeEditor {
 
                 // Draw full connections and output > reroute
                 foreach (XNode.NodePort output in node.Outputs) {
+                    // Draw straight line between centers for node connections
+                    if (output.ValueType == typeof(XNode.Node)) {
+                        for (int k = 0; k < output.ConnectionCount; k++)
+                        {
+                            XNode.NodePort input = output.GetConnection(k);
+
+                            Gradient noodleGradient = graphEditor.GetNoodleGradient(output, input);
+                            NoodleStroke noodleStroke = graphEditor.GetNoodleStroke(output, input);
+
+                            // Error handling
+                            if (input == null)
+                                continue; //If a script has been updated and the port doesn't exist, it is removed and null is returned. If this happens, return.
+                            if (!input.IsConnectedTo(output)) input.Connect(output);
+
+                            List<Vector2> reroutePoints = output.GetReroutePoints(k);
+
+                            gridPoints.Clear();
+                            gridPoints.Add(node.position);
+                            gridPoints.Add(output.Connection.node.position);
+                            DrawNoodle(noodleGradient, NoodlePath.Straight, noodleStroke, 10f, gridPoints);
+
+                            // Loop through reroute points again and draw the points
+                            for (int i = 0; i < reroutePoints.Count; i++)
+                            {
+                                RerouteReference rerouteRef = new RerouteReference(output, k, i);
+                                // Draw reroute point at position
+                                Rect rect = new Rect(reroutePoints[i], new Vector2(12, 12));
+                                rect.position = new Vector2(rect.position.x - 6, rect.position.y - 6);
+                                rect = GridToWindowRect(rect);
+
+                                /*// Draw selected reroute points with an outline
+                                if (selectedReroutes.Contains(rerouteRef))
+                                {
+                                    GUI.color = NodeEditorPreferences.GetSettings().highlightColor;
+                                    GUI.DrawTexture(rect, portStyle.normal.background);
+                                }
+
+                                GUI.color = portColor;
+                                GUI.DrawTexture(rect, portStyle.active.background);*/
+                                if (rect.Overlaps(selectionBox)) selection.Add(rerouteRef);
+                                if (rect.Contains(mousePos)) hoveredReroute = rerouteRef;
+
+                            }
+
+                        }
+
+                        continue;
+                    }
+
                     //Needs cleanup. Null checks are ugly
                     Rect fromRect;
                     if (!_portConnectionPoints.TryGetValue(output, out fromRect)) continue;
