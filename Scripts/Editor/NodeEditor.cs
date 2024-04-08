@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.Graphs;
 using UnityEngine;
 #if ODIN_INSPECTOR
 using Sirenix.OdinInspector.Editor;
@@ -82,7 +81,7 @@ namespace XNodeEditor {
             }
 #endif
             // If there are any connection, print a new Connection Header
-            if (target.DynamicPorts.Any(n => n.ValueType == typeof(Node)))
+            if (target.DynamicPorts.Any(n => n.ValueType == typeof(XNode.Node)))
                 GUILayout.Label("Connections:", NodeEditorResources.styles.nodeHeader, GUILayout.Height(24));
 
             // Iterate through dynamic ports and draw them in the order in which they are serialized

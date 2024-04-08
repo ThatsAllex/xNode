@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.Graphs;
 using UnityEngine;
 using XNodeEditor.Internal;
 #if UNITY_2019_1_OR_NEWER && USE_ADVANCED_GENERIC_MENU
@@ -259,8 +258,11 @@ namespace XNodeEditor {
                             if (IsHoveringNode)
                             {
                                 // Connect the nodes
-                                connectingNode.AddDynamicOutput(typeof(Node), XNode.Node.ConnectionType.Multiple, XNode.Node.TypeConstraint.None,"Out - " + hoveredNode.name);
-                                hoveredNode.AddDynamicInput(typeof(Node), XNode.Node.ConnectionType.Multiple, XNode.Node.TypeConstraint.None, "In - " + connectingNode.name);
+                                XNode.NodePort outPort = connectingNode.AddDynamicOutput(typeof(XNode.Node), XNode.Node.ConnectionType.Multiple, XNode.Node.TypeConstraint.None,"Out - " + hoveredNode.name);
+                                XNode.NodePort inPort = hoveredNode.AddDynamicInput(typeof(XNode.Node), XNode.Node.ConnectionType.Multiple, XNode.Node.TypeConstraint.None, "In - " + connectingNode.name);
+
+                                // Connect the ports
+                                outPort.Connect(inPort);
                             }
 
                             connectingNode = null;
